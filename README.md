@@ -1,6 +1,7 @@
 # Hotel Management
 
 The Hotel Management System is a comprehensive desktop application designed to streamline and automate various hotel operations. Built with Python, Tkinter for the GUI, and MongoDB for database management, this system ensures efficient handling of tasks such as room bookings, guest records, payments, and more.
+---
 
 ## Requirements:
 
@@ -31,5 +32,46 @@ pip install pymongo
 
 #### 2. **tkinter:** 
 When installing Python, check "Add Python to PATH" and ensure "Tcl/Tk and IDLE" is selected during the installation. This enables Tkinter for GUI development.
+
+---
+
+##  Implementation:
+
+### Installation
+
+Step 1: Clone the repository and change directory to that of this project.
+
+```bash
+git clone https://github.com/klrab3490/hotel-management.git "Hotel Management"
+cd "Hotel Management"
+```
+
+Step 2: Setup virtual environment:
+
+- Windows:
+```bash
+python -m venv env
+env\Script\activate.bat
+```
+
+- Ubuntu
+```bash
+python3 -m venv env
+source env/bin/activate
+```
+
+Step 3: Install `requirements.txt` which contains all the python packages:
+
+```bash
+pip install -r requirements.txt
+```
+
+### Run
+
+To start the project, use the following command:
+
+```bash
+python main.py
+```
 
 ---
