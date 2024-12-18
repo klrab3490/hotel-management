@@ -48,11 +48,13 @@ cd "Hotel Management"
 ### Step 2: Setup Virtual Environment
 
 - **Windows**:
+
   ```bash
   python -m venv env
   env\Scripts\activate.bat
   ```
 - **Ubuntu**:
+
   ```bash
   python3 -m venv env
   source env/bin/activate
