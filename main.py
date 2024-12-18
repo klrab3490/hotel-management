@@ -10,7 +10,6 @@ app.geometry("1500x800")
 user_Name = StringVar()
 
 
-"""Login"""
 class Login:
     def __init__(self, master):
         self.master = master
@@ -38,11 +37,10 @@ class Login:
         # Login button
         Button(self.window, text="Login", font=("Arial", 12), command=self.handle_login).grid(row=3, column=0, columnspan=2, pady=20)
 
-        # Optionally, add a status label for errors or success messages
+        # Status label for errors or success messages
         self.status_label = Label(self.window, text="", font=("Arial", 10), fg="red")
         self.status_label.grid(row=4, column=0, columnspan=2)
 
-    """Handles the login process."""
     def handle_login(self):
         username = self.username_entry.get()
         password = self.password_entry.get()
@@ -52,74 +50,69 @@ class Login:
         if success:
             messagebox.showinfo("Success", message)
             self.window.destroy()  # Close the login window
-            if session['role'] == 'admin':
-                show_main_admin()
-            else:
-                show_main_user()
+            check_login()
         else:
             messagebox.showerror("Error", message)
 
 
-def show_main_admin():
+def show_main(role):
     global app, session
-    # If there's no logged-in user, show an error message
     if 'user' not in session:
         messagebox.showerror("Error", "No user logged in.")
-        app.destroy()
+        app.quit()
         return
+
+    # Clear any previous widgets from the window
+    for widget in app.winfo_children():
+        widget.destroy()
 
     # Get user data from session
     user_Name.set(session.get('name', 'Unknown User'))
 
     # Your main application UI setup
     Label(app, text="Welcome to Hotel Management", font=("Arial", 24)).pack(pady=20)
-    Label(app, text="Admin", font=("Arial", 24)).pack(pady=20)
+    Label(app, text=role.capitalize(), font=("Arial", 24)).pack(pady=20)
     Label(app, textvariable=user_Name, font=("Arial", 24)).pack(pady=20)
 
     mymenu = Menu(app)
     app.config(menu=mymenu)
+
     file = Menu(mymenu)
-    mymenu.add_cascade(label="File",menu=file)
+    mymenu.add_cascade(label="File", menu=file)
     file.add_command(label="New")
     file.add_separator()
     file.add_command(label="Exit", command=app.quit)
 
+    db = Menu(mymenu)
+    mymenu.add_cascade(label="Data", menu=db)
+    db.add_command(label="Guests")
+    db.add_command(label="Inventory")
+    db.add_command(label="Rooms")
+    db.add_command(label="Staff")
+    db.add_command(label="Users")
 
-def show_main_user():
+    settings = Menu(mymenu)
+    mymenu.add_cascade(label="Settings", menu=settings)
+    settings.add_command(label="Sign Out", command=sign_out)
+    settings.add_command(label="Exit", command=app.quit)
+
+
+def sign_out():
     global app, session
-    # If there's no logged-in user, show an error message
-    if 'user' not in session:
-        messagebox.showerror("Error", "No user logged in.")
-        app.destroy()
-        return
+    for widget in app.winfo_children():
+        widget.destroy()
+    session.clear()  # Clear session
+    messagebox.showinfo("Signed Out", "You have been signed out successfully.")
+    # Return to the login screen
+    check_login()
 
-    # Get user data from session
-    user_Name.set(session.get('name', 'Unknown User'))
 
-    # Your main application UI setup
-    Label(app, text="Welcome to Hotel Management", font=("Arial", 24)).pack(pady=20)
-    Label(app, text="User", font=("Arial", 24)).pack(pady=20)
-    Label(app, textvariable=user_Name, font=("Arial", 24)).pack(pady=20)
-
-    mymenu = Menu(app)
-    app.config(menu=mymenu)
-    file = Menu(mymenu)
-    mymenu.add_cascade(label="File",menu=file)
-    file.add_command(label="New")
-    file.add_separator()
-    file.add_command(label="Exit", command=app.quit)
-
-"""Check if the user is logged in or not."""
 def check_login():
     if 'user' in session:
-        # If logged in, show the main app window
-        if session['role'] == 'admin':
-            show_main_admin()
-        else:
-            show_main_user()
+        role = session.get('role', 'user')
+        show_main(role)
     else:
-        # If not logged in, show the login window
-        Login(app)  
+        Login(app)
 
 
 # Start by checking login status
