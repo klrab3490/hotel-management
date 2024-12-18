@@ -1,7 +1,6 @@
-from app.views import TkiderApp
-import tkinter as tk
+from tkinter import Tk, Label, Entry, Button, messagebox
+from .db import session, login
 
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = TkiderApp(root)
-    root.mainloop()
+# Tkinter GUI SetUp
+app = Tk()
+app.title("Hotel Management")
