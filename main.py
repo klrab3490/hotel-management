@@ -72,7 +72,7 @@ class DisplayData:
             "inventory": ("Item Name", "Quantity", "Price"),
             "rooms": ("Room No", "Type", "Status", "Price"),
             "staff": ("Staff ID", "Name", "Role", "Email", "Phone", "Address", "Shift", "Salary", "Status"),
-            "user": ("User ID", "Username", "Name", "Role")
+            "user": ("Name", "Username", "Role")
         }
 
         if collection in collection_map:
@@ -96,7 +96,7 @@ class DisplayData:
                 elif collection == "staff":
                     self.tree.insert("", "end", values=(item['staff_id'], item['name'], item['role'], item['email'], item['phone'], item['address'], item['shift'], item['salary'], item['status']))
                 elif collection == "user":
-                    self.tree.insert("", "end", values=(item['user_id'], item['username'], item['name'], item['role']))
+                    self.tree.insert("", "end", values=(item['name'], item['username'], item['role']))
 
         # Pack the Treeview widget
         self.tree.pack(expand=True, fill="both")
@@ -184,20 +184,26 @@ def show_main(role):
     Button(bottom2, text="Add", font=("Arial", 16), width=40).pack(pady=10)
     Button(bottom2, text="Update", font=("Arial", 16), width=40).pack(pady=10)
     Button(bottom2, text="View", font=("Arial", 16), width=40, command=lambda:View_Action(app)).pack(pady=10)
+    Button(bottom2, text="Close", font=("Arial", 16), width=40, command=lambda:clear_action(app)).pack(pady=10)
 
 def View_Action(window):
     global bton_data
     if bton_data == "Guest":
-        DisplayData(window, "guest")
+        show_data("guest")
     elif bton_data == "Inventory":
-        DisplayData(window, "inventory")
+        show_data("inventory")
     elif bton_data == "Rooms":
-        DisplayData(window, "rooms")
+        show_data("rooms")
     elif bton_data == "Staff":
-        DisplayData(window, "staff")
+        show_data("staff")
     elif bton_data == "Users":
-        DisplayData(window, "users")
-    
+        show_data("user")
+
+def clear_action(window):
+    global bton_data
+    for widget in window.winfo_children():
+        widget.destroy()
+    bton_data = ""
 
 def sign_out():
     global app, session
@@ -209,6 +215,7 @@ def sign_out():
     check_login()
 
 def button_click(collection, window1):
+    global bton_data
     # Clear the window1 content
     for widget in window1.winfo_children():
         widget.destroy()
