@@ -1,6 +1,7 @@
 # Hotel Management
 
 The Hotel Management System is a comprehensive desktop application designed to streamline and automate various hotel operations. Built with Python, Tkinter for the GUI, and MongoDB for database management, this system ensures efficient handling of tasks such as room bookings, guest records, payments, and more.
+
 ---
 
 ## Requirements:
