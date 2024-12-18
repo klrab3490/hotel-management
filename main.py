@@ -35,7 +35,8 @@ class Login:
         self.password_entry.grid(row=2, column=1, padx=10, pady=5)
 
         # Login button
-        Button(self.window, text="Login", font=("Arial", 12), command=self.handle_login).grid(row=3, column=0, columnspan=2, pady=20)
+        Button(self.window, text="Login", font=("Arial", 12), command=self.handle_login).grid(row=3, column=0, columnspan=2)
+        Button(self.window, text="Exit", font=("Arial", 12), command=lambda: master.destroy()).grid(row=4, column=0, columnspan=2)
 
         # Status label for errors or success messages
         self.status_label = Label(self.window, text="", font=("Arial", 10), fg="red")

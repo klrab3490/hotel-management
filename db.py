@@ -7,14 +7,21 @@ URL = "mongodb://localhost:27017/"
 client = MongoClient(URL)
 
 # Access Database 'HotelMasterDB'
-db = client['HotelMasterDB']
+db = client.get_database('HotelMasterDB')
 
 # Collections
-guestDB = db['guest']
-inventoryDB = db['inventory']
-roomsDB = db['rooms']
-staffDB = db['staff']
-userDB = db['user']
+guestDB = db.get_collection('guest')
+inventoryDB = db.get_collection('inventory')
+roomsDB = db.get_collection('rooms')
+staffDB = db.get_collection('staff')
+userDB = db.get_collection('user')
+
+if userDB.count_documents({}) == 0:  # Check if the collection is empty
+    new_user1 = { "username": "admin", "password": "admin", "name": "Rahul A B(admin)", "role": "admin" }
+    new_user2 = { "username": "user", "password": "user", "name": "Rahul A B(user)", "role": "user" }
+    userDB.insert_one(new_user1)
+    userDB.insert_one(new_user2)
+    print("Inserted Data")
 
 # Session dictionary to store logged-in user details
 session = {}
