@@ -19,6 +19,8 @@ def login(username, password):
         if user.get("password") == password:
             session['user'] = username
             session['userID'] = str(user["_id"])
+            session['name'] = user["name"]
+            session['role'] = user["role"]
             return True, "Login"
         else:
             return False, "Invalid Password"
