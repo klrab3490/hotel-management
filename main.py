@@ -1,6 +1,6 @@
 from tkinter import *
 from tkinter import messagebox, ttk
-from db import session, login, getDB
+from db import session, login, getDB, addDB
 
 # Tkinter GUI Setup
 app = Tk()
@@ -8,14 +8,43 @@ app.title("Hotel Management")
 app.geometry("1500x800+0+0")
 
 user_Name = StringVar()
+DB_submit = StringVar()
+
 bton_data = ""
+addBtn = ""
+updateBtn = ""
+viewBtn = ""
+closeBtn = ""
+data = {}
+
+# Form Variables 
+guest_id = StringVar()
+name = StringVar()
+email = StringVar()
+phone = StringVar()
+address = StringVar()
+room_no = StringVar()
+check_in = StringVar()
+check_out = StringVar()
+status = StringVar()
+item = StringVar()
+quantity = StringVar()
+price = StringVar()
+type = StringVar()
+shift = StringVar()
+salary = StringVar()
+role = StringVar()
+password = StringVar()
+username = StringVar()
+staff_id = StringVar()
+
 
 class Login:
     def __init__(self, master):
         self.master = master
         self.window = Toplevel(self.master)
         self.window.title("Login")
-        self.window.geometry("300x200+150+150")
+        self.window.geometry("300x200")
         
         # Ensure the login window stays on top of the main window
         self.window.transient(self.master)
@@ -26,25 +55,21 @@ class Login:
 
         # Username label and entry
         Label(self.window, text="Username:", font=("Arial", 12)).grid(row=1, column=0, sticky="e", padx=10, pady=5)
-        self.username_entry = Entry(self.window, font=("Arial", 12))
-        self.username_entry.grid(row=1, column=1, padx=10, pady=5)
+        self.username = Entry(self.window, font=("Arial", 12))
+        self.username.grid(row=1, column=1, padx=10, pady=5)
 
         # Password label and entry
         Label(self.window, text="Password:", font=("Arial", 12)).grid(row=2, column=0, sticky="e", padx=10, pady=5)
-        self.password_entry = Entry(self.window, font=("Arial", 12), show="*")
-        self.password_entry.grid(row=2, column=1, padx=10, pady=5)
+        self.password = Entry(self.window, font=("Arial", 12), show="*")
+        self.password.grid(row=2, column=1, padx=10, pady=5)
 
         # Login button
         Button(self.window, text="Login", font=("Arial", 12), command=self.handle_login).grid(row=3, column=0, columnspan=2)
         Button(self.window, text="Exit", font=("Arial", 12), command=lambda: master.destroy()).grid(row=4, column=0, columnspan=2)
 
-        # Status label for errors or success messages
-        self.status_label = Label(self.window, text="", font=("Arial", 10), fg="red")
-        self.status_label.grid(row=4, column=0, columnspan=2)
-
     def handle_login(self):
-        username = self.username_entry.get()
-        password = self.password_entry.get()
+        username = self.username.get()
+        password = self.password.get()
 
         # Attempt login
         success, message = login(username, password)
@@ -68,7 +93,7 @@ class DisplayData:
         
         # Map the columns based on the collection
         collection_map = {
-            "guest": ("Guest ID", "Name", "Email", "Phone", "Address", "Room No", "Check In", "Check Out", "Status"),
+            "guest": ("Name", "Email", "Phone", "Address", "Room No", "Check In", "Check Out", "Status"),
             "inventory": ("Item Name", "Quantity", "Price"),
             "rooms": ("Room No", "Type", "Status", "Price"),
             "staff": ("Staff ID", "Name", "Role", "Email", "Phone", "Address", "Shift", "Salary", "Status"),
@@ -173,20 +198,36 @@ def show_main(role):
         Button(middlebar, text="Users", font=("Arial", 16), height=2, width=20, command=lambda: button_click("Users", bottom1)).grid(row=0, column=4)
 
     # Footer
-    
     bottom1 = Frame(app, width=1000, height=670)
     bottom1.grid(row=2, column=0, columnspan=2, sticky="ewns")
-
     app.grid_rowconfigure(2, weight=1, minsize=670)
     bottom2 = Frame(app, width=500)
     bottom2.grid(row=2, column=2, sticky="ewns")
+    global addBtn, updateBtn, viewBtn, closeBtn, bton_data
+    addBtn = Button(bottom2, text="Add", font=("Arial", 16), width=40, command=lambda: submitData(bton_data))
+    addBtn.pack(pady=10)
+    addBtn.config(state=DISABLED)
+    updateBtn = Button(bottom2, text="Update", font=("Arial", 16), width=40, command=update_action)
+    updateBtn.pack(pady=10)
+    updateBtn.config(state=DISABLED)
+    viewBtn = Button(bottom2, text="View", font=("Arial", 16), width=40, command=View_Action)
+    viewBtn.pack(pady=10)
+    viewBtn.config(state=DISABLED)
+    closeBtn = Button(bottom2, text="Close", font=("Arial", 16), width=40, command=lambda:clear_action(bottom1))
+    closeBtn.pack(pady=10)
+    closeBtn.config(state=DISABLED)
 
-    Button(bottom2, text="Add", font=("Arial", 16), width=40).pack(pady=10)
-    Button(bottom2, text="Update", font=("Arial", 16), width=40).pack(pady=10)
-    Button(bottom2, text="View", font=("Arial", 16), width=40, command=lambda:View_Action(app)).pack(pady=10)
-    Button(bottom2, text="Close", font=("Arial", 16), width=40, command=lambda:clear_action(app)).pack(pady=10)
+def update_action():
+    global bton_data
+    print(f"Update {bton_data}")
 
-def View_Action(window):
+def updateBtnState(state):
+    global addBtn, updateBtn, viewBtn, closeBtn
+    buttons=[addBtn, viewBtn, closeBtn]
+    for i in buttons:
+        i.config(state=state)
+
+def View_Action():
     global bton_data
     if bton_data == "Guest":
         show_data("guest")
@@ -204,6 +245,7 @@ def clear_action(window):
     for widget in window.winfo_children():
         widget.destroy()
     bton_data = ""
+    updateBtnState(DISABLED)
 
 def sign_out():
     global app, session
@@ -221,168 +263,204 @@ def button_click(collection, window1):
         widget.destroy()
 
     bton_data = collection
+    if bton_data!= "":
+        updateBtnState(ACTIVE)
 
     if collection == "Guest":
-        label = Label(window1, text="Guests", font=("Arial", 24), width=50)
-        label.grid(row=0, column=0, columnspan=2, pady=10)
+        Label(window1, text="Guests", font=("Arial", 24), width=50).grid(row=0, column=0, columnspan=2, pady=10)
 
         # Guest Form Fields
-        Label(window1, text="Guest ID:", font=("Arial", 12)).grid(row=1, column=0, sticky="e", padx=10, pady=5)
-        guest_id_entry = Entry(window1, font=("Arial", 12))
-        guest_id_entry.grid(row=1, column=1, padx=10, pady=5)
+        # Label(window1, text="Guest ID:", font=("Arial", 12)).grid(row=1, column=0, sticky="e", padx=10, pady=5)
+        # Entry(window1, textvariable=guest_id, font=("Arial", 12)).grid(row=1, column=1, padx=10, pady=5)
 
         Label(window1, text="Name:", font=("Arial", 12)).grid(row=2, column=0, sticky="e", padx=10, pady=5)
-        name_entry = Entry(window1, font=("Arial", 12))
-        name_entry.grid(row=2, column=1, padx=10, pady=5)
+        Entry(window1, textvariable=name, font=("Arial", 12)).grid(row=2, column=1, padx=10, pady=5)
 
         Label(window1, text="Email:", font=("Arial", 12)).grid(row=3, column=0, sticky="e", padx=10, pady=5)
-        email_entry = Entry(window1, font=("Arial", 12))
-        email_entry.grid(row=3, column=1, padx=10, pady=5)
+        Entry(window1, textvariable=email, font=("Arial", 12)).grid(row=3, column=1, padx=10, pady=5)
 
         Label(window1, text="Phone:", font=("Arial", 12)).grid(row=4, column=0, sticky="e", padx=10, pady=5)
-        phone_entry = Entry(window1, font=("Arial", 12))
-        phone_entry.grid(row=4, column=1, padx=10, pady=5)
+        Entry(window1, textvariable=phone, font=("Arial", 12)).grid(row=4, column=1, padx=10, pady=5)
 
         Label(window1, text="Address:", font=("Arial", 12)).grid(row=5, column=0, sticky="e", padx=10, pady=5)
-        address_entry = Entry(window1, font=("Arial", 12))
-        address_entry.grid(row=5, column=1, padx=10, pady=5)
+        Entry(window1, textvariable=address, font=("Arial", 12)).grid(row=5, column=1, padx=10, pady=5)
 
         Label(window1, text="Room No:", font=("Arial", 12)).grid(row=6, column=0, sticky="e", padx=10, pady=5)
-        room_no_entry = Entry(window1, font=("Arial", 12))
-        room_no_entry.grid(row=6, column=1, padx=10, pady=5)
+        Entry(window1, textvariable=room_no, font=("Arial", 12)).grid(row=6, column=1, padx=10, pady=5)
 
-        Label(window1, text="Check In Date:", font=("Arial", 12)).grid(row=7, column=0, sticky="e", padx=10, pady=5)
-        check_in_entry = Entry(window1, font=("Arial", 12))
-        check_in_entry.grid(row=7, column=1, padx=10, pady=5)
+        # Label(window1, text="Check In Date:", font=("Arial", 12)).grid(row=7, column=0, sticky="e", padx=10, pady=5)
+        # Entry(window1, textvariable=check_in, font=("Arial", 12)).grid(row=7, column=1, padx=10, pady=5)
 
-        Label(window1, text="Check Out Date:", font=("Arial", 12)).grid(row=8, column=0, sticky="e", padx=10, pady=5)
-        check_out_entry = Entry(window1, font=("Arial", 12))
-        check_out_entry.grid(row=8, column=1, padx=10, pady=5)
+        # Label(window1, text="Check Out Date:", font=("Arial", 12)).grid(row=8, column=0, sticky="e", padx=10, pady=5)
+        # Entry(window1, textvariable=check_out, font=("Arial", 12)).grid(row=8, column=1, padx=10, pady=5)
 
         Label(window1, text="Status:", font=("Arial", 12)).grid(row=9, column=0, sticky="e", padx=10, pady=5)
-        status_entry = Entry(window1, font=("Arial", 12))
-        status_entry.grid(row=9, column=1, padx=10, pady=5)
+        Entry(window1, textvariable=status, font=("Arial", 12)).grid(row=9, column=1, padx=10, pady=5)
 
         # Submit Button to save guest data
-        submit_button = Button(window1, text="Submit", font=("Arial", 12))
+        submit_button = Button(window1, text="Submit", font=("Arial", 12), command=lambda:getData("Guest"))
         submit_button.grid(row=10, column=0, columnspan=2, pady=10)
 
+        Label(window1, text="Data:", font=("Arial", 12)).grid(row=11, column=0, sticky="e", padx=10, pady=5)
+        Label(window1, textvariable=DB_submit, font=("Arial", 12)).grid(row=11, column=1, padx=10, pady=5)
+
     elif collection == "Inventory":
-        label = Label(window1, text="Inventory", font=("Arial", 24), width=50)
-        label.grid(row=0, column=0, columnspan=2, pady=10)
+        Label(window1, text="Inventory", font=("Arial", 24), width=50).grid(row=0, column=0, columnspan=2, pady=10)
 
         # Inventory Form Fields
         Label(window1, text="Item Name:", font=("Arial", 12)).grid(row=1, column=0, sticky="e", padx=10, pady=5)
-        item_entry = Entry(window1, font=("Arial", 12))
-        item_entry.grid(row=1, column=1, padx=10, pady=5)
+        Entry(window1, textvariable=item, font=("Arial", 12)).grid(row=1, column=1, padx=10, pady=5)
 
         Label(window1, text="Quantity:", font=("Arial", 12)).grid(row=2, column=0, sticky="e", padx=10, pady=5)
-        quantity_entry = Entry(window1, font=("Arial", 12))
-        quantity_entry.grid(row=2, column=1, padx=10, pady=5)
+        Entry(window1, textvariable=quantity, font=("Arial", 12)).grid(row=2, column=1, padx=10, pady=5)
 
         Label(window1, text="Price:", font=("Arial", 12)).grid(row=3, column=0, sticky="e", padx=10, pady=5)
-        price_entry = Entry(window1, font=("Arial", 12))
-        price_entry.grid(row=3, column=1, padx=10, pady=5)
+        Entry(window1, textvariable=price, font=("Arial", 12)).grid(row=3, column=1, padx=10, pady=5)
 
         # Submit Button to save inventory data
-        submit_button = Button(window1, text="Submit", font=("Arial", 12))
+        submit_button = Button(window1, text="Submit", font=("Arial", 12), command=lambda:getData("Inventory"))
         submit_button.grid(row=4, column=0, columnspan=2, pady=10)
 
+        Label(window1, text="Data:", font=("Arial", 12)).grid(row=5, column=0, sticky="e", padx=10, pady=5)
+        Label(window1, textvariable=DB_submit, font=("Arial", 12)).grid(row=5, column=1, padx=10, pady=5)
+
     elif collection == "Rooms":
-        label = Label(window1, text="Rooms", font=("Arial", 24), width=50)
-        label.grid(row=0, column=0, columnspan=2, pady=10)
+        Label(window1, text="Rooms", font=("Arial", 24), width=50).grid(row=0, column=0, columnspan=2, pady=10)
 
         # Rooms Form Fields
         Label(window1, text="Room No:", font=("Arial", 12)).grid(row=1, column=0, sticky="e", padx=10, pady=5)
-        room_no_entry = Entry(window1, font=("Arial", 12))
-        room_no_entry.grid(row=1, column=1, padx=10, pady=5)
+        Entry(window1, textvariable=room_no, font=("Arial", 12)).grid(row=1, column=1, padx=10, pady=5)
 
         Label(window1, text="Type:", font=("Arial", 12)).grid(row=2, column=0, sticky="e", padx=10, pady=5)
-        type_entry = Entry(window1, font=("Arial", 12))
-        type_entry.grid(row=2, column=1, padx=10, pady=5)
+        Entry(window1, textvariable=type, font=("Arial", 12)).grid(row=2, column=1, padx=10, pady=5)
 
         Label(window1, text="Status:", font=("Arial", 12)).grid(row=3, column=0, sticky="e", padx=10, pady=5)
-        status_entry = Entry(window1, font=("Arial", 12))
-        status_entry.grid(row=3, column=1, padx=10, pady=5)
+        Entry(window1, textvariable=status, font=("Arial", 12)).grid(row=3, column=1, padx=10, pady=5)
 
         Label(window1, text="Price:", font=("Arial", 12)).grid(row=4, column=0, sticky="e", padx=10, pady=5)
-        price_entry = Entry(window1, font=("Arial", 12))
-        price_entry.grid(row=4, column=1, padx=10, pady=5)
+        Entry(window1, textvariable=price, font=("Arial", 12)).grid(row=4, column=1, padx=10, pady=5)
 
         # Submit Button to save room data
-        submit_button = Button(window1, text="Submit", font=("Arial", 12))
+        submit_button = Button(window1, text="Submit", font=("Arial", 12), command=lambda:getData("Rooms"))
         submit_button.grid(row=5, column=0, columnspan=2, pady=10)
+
+        Label(window1, text="Data:", font=("Arial", 12)).grid(row=6, column=0, sticky="e", padx=10, pady=5)
+        Label(window1, textvariable=DB_submit, font=("Arial", 12)).grid(row=6, column=1, padx=10, pady=5)
         
     elif collection == "Staff":
-        label = Label(window1, text="Staff", font=("Arial", 24), width=50)
-        label.grid(row=0, column=0, columnspan=2, pady=10)
+        Label(window1, text="Staff", font=("Arial", 24), width=50).grid(row=0, column=0, columnspan=2, pady=10)
 
         # Staff Form Fields
         Label(window1, text="Staff ID:", font=("Arial", 12)).grid(row=1, column=0, sticky="e", padx=10, pady=5)
-        staff_id_entry = Entry(window1, font=("Arial", 12))
-        staff_id_entry.grid(row=1, column=1, padx=10, pady=5)
+        Entry(window1, textvariable=staff_id, font=("Arial", 12)).grid(row=1, column=1, padx=10, pady=5)
 
         Label(window1, text="Name:", font=("Arial", 12)).grid(row=2, column=0, sticky="e", padx=10, pady=5)
-        name_entry = Entry(window1, font=("Arial", 12))
-        name_entry.grid(row=2, column=1, padx=10, pady=5)
+        Entry(window1, textvariable=name, font=("Arial", 12)).grid(row=2, column=1, padx=10, pady=5)
 
         Label(window1, text="Role:", font=("Arial", 12)).grid(row=3, column=0, sticky="e", padx=10, pady=5)
-        role_entry = Entry(window1, font=("Arial", 12))
-        role_entry.grid(row=3, column=1, padx=10, pady=5)
+        Entry(window1, textvariable=role, font=("Arial", 12)).grid(row=3, column=1, padx=10, pady=5)
 
         Label(window1, text="Email:", font=("Arial", 12)).grid(row=4, column=0, sticky="e", padx=10, pady=5)
-        email_entry = Entry(window1, font=("Arial", 12))
-        email_entry.grid(row=4, column=1, padx=10, pady=5)
-
-        Label(window1, text="Phone:", font=("Arial", 12)).grid(row=5, column=0, sticky="e", padx=10, pady=5)
-        phone_entry = Entry(window1, font=("Arial", 12))
-        phone_entry.grid(row=5, column=1, padx=10, pady=5)
-
-        Label(window1, text="Address:", font=("Arial", 12)).grid(row=6, column=0, sticky="e", padx=10, pady=5)
-        address_entry = Entry(window1, font=("Arial", 12))
-        address_entry.grid(row=6, column=1, padx=10, pady=5)
+        Entry(window1, textvariable=email, font=("Arial", 12)).grid(row=4, column=1, padx=10, pady=5)
 
         Label(window1, text="Shift:", font=("Arial", 12)).grid(row=7, column=0, sticky="e", padx=10, pady=5)
-        shift_entry = Entry(window1, font=("Arial", 12))
-        shift_entry.grid(row=7, column=1, padx=10, pady=5)
+        Entry(window1, textvariable=shift, font=("Arial", 12)).grid(row=7, column=1, padx=10, pady=5)
 
         Label(window1, text="Salary:", font=("Arial", 12)).grid(row=8, column=0, sticky="e", padx=10, pady=5)
-        salary_entry = Entry(window1, font=("Arial", 12))
-        salary_entry.grid(row=8, column=1, padx=10, pady=5)
+        Entry(window1, textvariable=salary, font=("Arial", 12)).grid(row=8, column=1, padx=10, pady=5)
 
         Label(window1, text="Status:", font=("Arial", 12)).grid(row=9, column=0, sticky="e", padx=10, pady=5)
-        status_entry = Entry(window1, font=("Arial", 12))
-        status_entry.grid(row=9, column=1, padx=10, pady=5)
+        Entry(window1, textvariable=status, font=("Arial", 12)).grid(row=9, column=1, padx=10, pady=5)
 
         # Submit Button to save staff data
-        submit_button = Button(window1, text="Submit", font=("Arial", 12))
+        submit_button = Button(window1, text="Submit", font=("Arial", 12), command=lambda:getData("Staff"))
         submit_button.grid(row=10, column=0, columnspan=2, pady=10)
+
+        Label(window1, text="Data:", font=("Arial", 12)).grid(row=11, column=0, sticky="e", padx=10, pady=5)
+        Label(window1, textvariable=DB_submit, font=("Arial", 12)).grid(row=11, column=1, padx=10, pady=5)
         
     elif collection == "Users":
-        label = Label(window1, text="Users", font=("Arial", 24), width=50)
-        label.grid(row=0, column=0, columnspan=2, pady=10)
+        Label(window1, text="Users", font=("Arial", 24), width=50).grid(row=0, column=0, columnspan=2, pady=10)
 
         # Users Form Fields
-        Label(window1, text="User ID:", font=("Arial", 12)).grid(row=1, column=0, sticky="e", padx=10, pady=5)
-        user_id_entry = Entry(window1, font=("Arial", 12))
-        user_id_entry.grid(row=1, column=1, padx=10, pady=5)
+        Label(window1, text="Username:", font=("Arial", 12)).grid(row=1, column=0, sticky="e", padx=10, pady=5)
+        Entry(window1, textvariable=username, font=("Arial", 12)).grid(row=1, column=1, padx=10, pady=5)
 
-        Label(window1, text="Username:", font=("Arial", 12)).grid(row=2, column=0, sticky="e", padx=10, pady=5)
-        username_entry = Entry(window1, font=("Arial", 12))
-        username_entry.grid(row=2, column=1, padx=10, pady=5)
+        Label(window1, text="Password:", font=("Arial", 12)).grid(row=2, column=0, sticky="e", padx=10, pady=5)
+        Entry(window1, textvariable=password, font=("Arial", 12)).grid(row=2, column=1, padx=10, pady=5)
 
         Label(window1, text="Name:", font=("Arial", 12)).grid(row=3, column=0, sticky="e", padx=10, pady=5)
-        name_entry = Entry(window1, font=("Arial", 12))
-        name_entry.grid(row=3, column=1, padx=10, pady=5)
+        Entry(window1, textvariable=name, font=("Arial", 12)).grid(row=3, column=1, padx=10, pady=5)
 
         Label(window1, text="Role:", font=("Arial", 12)).grid(row=4, column=0, sticky="e", padx=10, pady=5)
-        role_entry = Entry(window1, font=("Arial", 12))
-        role_entry.grid(row=4, column=1, padx=10, pady=5)
+        Entry(window1, textvariable="User", font=("Arial", 12)).grid(row=4, column=1, padx=10, pady=5)
 
         # Submit Button to save user data
-        submit_button = Button(window1, text="Submit", font=("Arial", 12))
+        submit_button = Button(window1, text="Submit", font=("Arial", 12), command=lambda:getData("Users"))
         submit_button.grid(row=5, column=0, columnspan=2, pady=10)
-        
+
+        Label(window1, text="Data:", font=("Arial", 12)).grid(row=6, column=0, sticky="e", padx=10, pady=5)
+        Label(window1, textvariable=DB_submit, font=("Arial", 12), width=50, height=100).grid(row=6, column=1, padx=10, pady=5)
+
+def getData(collection):
+    global data
+    # Collect data based on the collection type
+    if collection == "Guest":
+            # "guest_id": int(guest_id.get()),
+        data = {
+            "name": name.get(),
+            "email": email.get(),
+            "phone": phone.get(),
+            "address": address.get(),
+            "room_no": room_no.get(),
+            "status": status.get()
+        }
+    elif collection == "Inventory":
+        data = {
+            "item": item.get(),
+            "quantity": int(quantity.get()),
+            "price": int(price.get())
+        }
+    elif collection == "Rooms":
+        data = {
+            "room_no": room_no.get(),
+            "type": type.get(),
+            "status": status.get(),
+            "price": int(price.get())
+        }
+    elif collection == "Staff":
+            # "staff_id": staff_id.get(),
+        data = {
+            "name": name.get(),
+            "role": role.get(),
+            "email": email.get(),
+            "phone": phone.get(),
+            "address": address.get(),
+            "shift": shift.get(),
+            "salary": salary.get(),
+            "status": status.get()
+        }
+    elif collection == "User":
+        data = {
+            "username": username.get(),
+            "password": password.get(),
+            "name": name.get(),
+            "role": "user"
+        }
+
+    DB_submit.set(data)
+
+def submitData(collection):
+    global data, DB_submit
+    # Pass data to FormHandler
+    success, id, message = addDB(collection, data)
+    if success:
+        print(message)
+    else:
+        print(f"Error: {message}")
+    addDB(collection,data)
+    DB_submit.set("")
+    data = {}
 
 def check_login():
     if 'user' in session:
@@ -390,7 +468,6 @@ def check_login():
         show_main(role)
     else:
         Login(app)
-
 
 # Start by checking login status
 check_login()

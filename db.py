@@ -1,4 +1,5 @@
 from pymongo import MongoClient
+from pymongo.errors import OperationFailure
 
 # MongoDB connection
 URL = "mongodb://localhost:27017/"
@@ -7,7 +8,7 @@ URL = "mongodb://localhost:27017/"
 client = MongoClient(URL)
 
 # Access Database 'HotelMasterDB'
-db = client.get_database('HotelMasterDB')
+db = client.get_database('Hotel_MasterDB')
 
 # Collections
 bookingDB = db.get_collection('booking')
@@ -108,3 +109,30 @@ def getDB(collection):
             return False, False, "No Data Fetched"
     else:
         return False, False, "User Not Logged In"
+    
+def addDB(collection, data):
+    if 'user' in session:  # Check if a user is logged in
+        # Define a dictionary for the collections
+        collection_map = {
+            "Guest": guestDB,
+            "Inventory": inventoryDB,
+            "Rooms": roomsDB,
+            "Staff": staffDB,
+            "User": userDB
+        }
+        print(data)
+
+        # Validate collection
+        if collection in collection_map:
+            try:
+                # Perform the database insertion
+                result = collection_map[collection].insert_one(data)
+                return True, str(result.inserted_id), "Data successfully added"
+            except Exception as e:
+                return False, None, f"An unexpected error occurred: {str(e)}"
+        else:
+            return False, None, "Invalid collection name specified"
+    else:
+        return False, None, "User not logged in"
+
+
