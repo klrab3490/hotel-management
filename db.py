@@ -120,7 +120,6 @@ def addDB(collection, data):
             "staff": staffDB,
             "user": userDB
         }
-        print(data)
 
         # Validate collection
         if collection in collection_map:
@@ -148,9 +147,7 @@ def updateDB(collection, query, update):
         query = { "_id": ObjectId(query) } # Convert the query string to ObjectId
 
         # Fix the field
-        print("Data Arrived In Update: ", update)
         update_data = map_update_data(collection, update)
-        print("Data to be updated in Mongo:",update_data)
 
         # Validate collection
         if collection in collection_map:
@@ -206,5 +203,3 @@ def map_update_data(collection_name, update):
             update_data[db_key] = value
     
     return update_data
-
-
