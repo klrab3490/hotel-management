@@ -1,5 +1,5 @@
 from pymongo import MongoClient
-from pymongo.errors import OperationFailure
+from bson import ObjectId
 
 # MongoDB connection
 URL = "mongodb://localhost:27017/"
@@ -114,11 +114,11 @@ def addDB(collection, data):
     if 'user' in session:  # Check if a user is logged in
         # Define a dictionary for the collections
         collection_map = {
-            "Guest": guestDB,
-            "Inventory": inventoryDB,
-            "Rooms": roomsDB,
-            "Staff": staffDB,
-            "User": userDB
+            "guest": guestDB,
+            "inventory": inventoryDB,
+            "rooms": roomsDB,
+            "staff": staffDB,
+            "user": userDB
         }
         print(data)
 
@@ -134,5 +134,77 @@ def addDB(collection, data):
             return False, None, "Invalid collection name specified"
     else:
         return False, None, "User not logged in"
+
+def updateDB(collection, query, update):
+    if 'user' in session:  # Check if a user is logged in
+        # Define a dictionary for the collections
+        collection_map = {
+            "guest": guestDB,
+            "inventory": inventoryDB,
+            "rooms": roomsDB,
+            "staff": staffDB,
+            "user": userDB
+        }
+        query = { "_id": ObjectId(query) } # Convert the query string to ObjectId
+
+        # Fix the field
+        print("Data Arrived In Update: ", update)
+        update_data = map_update_data(collection, update)
+        print("Data to be updated in Mongo:",update_data)
+
+        # Validate collection
+        if collection in collection_map:
+            try:
+                # Perform the database update
+                result = collection_map[collection].update_one(query, {"$set": update_data})
+                if result.modified_count > 0:
+                    return True, "Data successfully updated"
+                else:
+                    return False, "No matching data found or no changes made"
+            except Exception as e:
+                return False, f"An unexpected error occurred: {str(e)}"
+        else:
+            return False, "Invalid collection name specified"
+    else:
+        return False, "User not logged in"
+    
+def map_update_data(collection_name, update):
+    # Define keys
+    collection_keys = {
+        "guest": ("ID", "Name", "Email", "Phone", "Address", "Room No", "Check In", "Check Out", "Status"),
+        "inventory": ("ID", "Item Name", "Quantity", "Price"),
+        "rooms": ("ID", "Room No", "Type", "Status", "Price"),
+        "staff": ("ID", "Name", "Role", "Email", "Phone", "Address", "Shift", "Salary", "Status"),
+        "user": ("ID", "Name", "Username", "Role")
+    }
+    
+    database_keys = {
+        "guest": ["_id", "name", "email", "phone", "address", "room_no", "checkin_date", "checkout_date", "status"],
+        "inventory": ["_id", "item", "quantity", "price"],
+        "rooms": ["_id", "room_no", "type", "status", "price"],
+        "staff": ["_id", "staff_id", "name", "role", "email", "phone", "address", "shift", "salary", "status"],
+        "user": ["_id", "username", "password", "name", "role"]
+    }
+    
+    # Fields to convert to integers
+    int_fields = {"price", "quantity", "salary"}
+
+    # Create a mapping between the keys
+    key_mapping = dict(zip(collection_keys[collection_name], database_keys[collection_name]))
+    
+    # Map the update data to the new keys and handle type conversion
+    update_data = {}
+    for key, value in update.items():
+        if key in key_mapping:
+            db_key = key_mapping[key]
+            if db_key in int_fields:
+                # Convert to int if it's in the int_fields
+                try:
+                    value = int(value)
+                except ValueError:
+                    raise ValueError(f"Value for '{db_key}' must be an integer, got '{value}'")
+            update_data[db_key] = value
+    
+    return update_data
 
 

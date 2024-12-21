@@ -1,476 +1,438 @@
 from tkinter import *
 from tkinter import messagebox, ttk
-from db import session, login, getDB, addDB
+from db import session, login, getDB, addDB, updateDB
 
-# Tkinter GUI Setup
-app = Tk()
-app.title("Hotel Management")
-app.geometry("1500x800+0+0")
+class HotelManagementApp:
+    def __init__(self):
+        self.app = Tk()
+        self.app.title("Hotel Management")
+        self.app.geometry("1500x800+0+0")
 
-user_Name = StringVar()
-DB_submit = StringVar()
+        self.session = session
 
-bton_data = ""
-addBtn = ""
-updateBtn = ""
-viewBtn = ""
-closeBtn = ""
-data = {}
+        self.user_Name = StringVar()
+        self.DB_submit = StringVar()
 
-# Form Variables 
-guest_id = StringVar()
-name = StringVar()
-email = StringVar()
-phone = StringVar()
-address = StringVar()
-room_no = StringVar()
-check_in = StringVar()
-check_out = StringVar()
-status = StringVar()
-item = StringVar()
-quantity = StringVar()
-price = StringVar()
-type = StringVar()
-shift = StringVar()
-salary = StringVar()
-role = StringVar()
-password = StringVar()
-username = StringVar()
-staff_id = StringVar()
+        self.bton_data = ""
+        self.addBtn = None
+        self.updateBtn = None
+        self.viewBtn = None
+        self.closeBtn = None
+        self.data = {}
 
+        self.init_variables()
+        self.check_login()
+        self.app.mainloop()
+
+    def init_variables(self):
+        self.guest_id = StringVar()
+        self.name = StringVar()
+        self.email = StringVar()
+        self.phone = StringVar()
+        self.address = StringVar()
+        self.room_no = StringVar()
+        self.check_in = StringVar()
+        self.check_out = StringVar()
+        self.status = StringVar()
+        self.item = StringVar()
+        self.quantity = StringVar()
+        self.price = StringVar()
+        self.type = StringVar()
+        self.shift = StringVar()
+        self.salary = StringVar()
+        self.role = StringVar()
+        self.password = StringVar()
+        self.username = StringVar()
+        self.staff_id = StringVar()
+
+    def check_login(self):
+        if 'user' in self.session:
+            role = self.session.get('role', 'user')
+            self.show_main(role)
+        else:
+            Login(self)
+
+    def show_main(self, role):
+        if 'user' not in self.session:
+            messagebox.showerror("Error", "No user logged in.")
+            self.app.quit()
+            return
+
+        for widget in self.app.winfo_children():
+            widget.destroy()
+
+        self.build_menu(role)
+        self.build_topbar(role)
+        self.build_middlebar(role)
+        self.build_footer()
+
+    def build_menu(self, role):
+        mymenu = Menu(self.app)
+        self.app.config(menu=mymenu)
+
+        db_menu = Menu(mymenu)
+        mymenu.add_cascade(label="View", menu=db_menu)
+        db_menu.add_command(label="Guests", command=lambda: self.show_data("guest"))
+        db_menu.add_command(label="Inventory", command=lambda: self.show_data("inventory"))
+        db_menu.add_command(label="Rooms", command=lambda: self.show_data("rooms"))
+        if role == "admin":
+            db_menu.add_command(label="Staff", command=lambda: self.show_data("staff"))
+            db_menu.add_command(label="Users", command=lambda: self.show_data("user"))
+
+        settings_menu = Menu(mymenu)
+        mymenu.add_cascade(label="Settings", menu=settings_menu)
+        settings_menu.add_command(label="Sign Out", command=self.sign_out)
+        settings_menu.add_command(label="Exit", command=self.app.quit)
+
+    def build_topbar(self, role):
+        topbar = Frame(self.app, width=1500, height=70, bg="lightblue")
+        topbar.grid(row=0, column=0, columnspan=3, sticky="ew")
+        topbar.grid_columnconfigure(0, weight=1, minsize=500)
+        topbar.grid_columnconfigure(1, weight=1, minsize=500)
+        topbar.grid_columnconfigure(2, weight=1, minsize=500)
+
+        Label(topbar, text=role.capitalize(), font=("Arial", 24), bg="lightblue", height=2).grid(row=0, column=0, sticky="w", padx=10)
+        Label(topbar, text="Welcome to Hotel Management", font=("Arial", 24), bg="lightblue", height=2).grid(row=0, column=1, sticky="n", padx=10)
+        Label(topbar, textvariable=self.user_Name, font=("Arial", 24), bg="lightblue", height=2).grid(row=0, column=2, sticky="e", padx=10)
+
+        self.user_Name.set(self.session.get('name', 'Unknown User'))
+
+    def build_middlebar(self, role):
+        middlebar = Frame(self.app, width=1500, height=60)
+        middlebar.grid(row=1, column=0, columnspan=3, sticky="ew")
+
+        button_config = {
+            "Guests": ("Guest", 0),
+            "Inventory": ("Inventory", 1),
+            "Rooms": ("Rooms", 2),
+        }
+
+        if role == "admin":
+            button_config.update({
+                "Staff": ("Staff", 3),
+                "Users": ("Users", 4),
+            })
+
+        for text, (collection, column) in button_config.items():
+            Button(middlebar, text=text, font=("Arial", 16), height=2, width=20, command=lambda c=collection: self.button_click(c)).grid(row=0, column=column)
+
+    def build_footer(self):
+        self.bottom1 = Frame(self.app, width=1000, height=670)
+        self.bottom1.grid(row=2, column=0, columnspan=2, sticky="ewns")
+        self.app.grid_rowconfigure(2, weight=1, minsize=670)
+        
+        self.bottom2 = Frame(self.app, width=500)
+        self.bottom2.grid(row=2, column=2, sticky="ewns")
+
+        self.addBtn = Button(self.bottom2, text="Add", font=("Arial", 16), width=40, command=self.add_action)
+        self.addBtn.pack(pady=10)
+        self.addBtn.config(state=DISABLED)
+
+        self.updateBtn = Button(self.bottom2, text="Update", font=("Arial", 16), width=40, command=self.update_action)
+        self.updateBtn.pack(pady=10)
+        self.updateBtn.config(state=DISABLED)
+
+        self.viewBtn = Button(self.bottom2, text="View", font=("Arial", 16), width=40, command=self.view_action)
+        self.viewBtn.pack(pady=10)
+        self.viewBtn.config(state=DISABLED)
+
+        self.closeBtn = Button(self.bottom2, text="Close", font=("Arial", 16), width=40, command=self.clear_action)
+        self.closeBtn.pack(pady=10)
+        self.closeBtn.config(state=DISABLED)
+
+    def button_click(self, collection):
+        self.bton_data = collection
+        self.show_form(collection)
+        self.update_button_state(ACTIVE)
+
+    def show_form(self, collection):
+        for widget in self.bottom1.winfo_children():
+            widget.destroy()
+
+        form_fields = {
+            "Guest": ["Name", "Email", "Phone", "Address", "Room No", "Status"],
+            "Inventory": ["Item", "Quantity", "Price"],
+            "Rooms": ["Room No", "Type", "Status", "Price"],
+            "Staff": ["Staff ID", "Name", "Role", "Email", "Phone", "Shift", "Salary", "Status"],
+            "Users": ["Username", "Password", "Name", "Role"]
+        }
+
+        fields = form_fields.get(collection, [])
+
+        for idx, field in enumerate(fields):
+            label = Label(self.bottom1, text=f"{field}:", font=("Arial", 12))
+            label.grid(row=idx, column=0, sticky="e", padx=10, pady=5)
+
+            entry_var = getattr(self, field.lower().replace(" ", "_"), None)
+            if entry_var is not None:
+                entry = Entry(self.bottom1, textvariable=entry_var, font=("Arial", 12))
+                entry.grid(row=idx, column=1, padx=10, pady=5)
+
+        self.dataBtn = Button(self.bottom1, text="Add", font=("Arial", 16), command=self.submit_data)
+        self.dataBtn.grid(row=len(fields), column=0, columnspan=2, pady=10)
+
+        label1 = Label(self.bottom1, text="Data: ", font=("Arial", 12))
+        label2 = Label(self.bottom1, textvariable=self.DB_submit, font=("Arial", 12))
+        label1.grid(row=len(fields) + 1, column=0, pady=10)
+        label2.grid(row=len(fields) + 1, column=1, pady=10)
+
+    def update_button_state(self, state):
+        for btn in [self.addBtn, self.updateBtn, self.viewBtn, self.closeBtn]:
+            btn.config(state=state)
+
+    def show_data(self, collection):
+        success, data, message = getDB(collection)
+        if success:
+            DisplayData(self.app, data, collection)
+        else:
+            messagebox.showerror("Error", message)
+    
+    def show_update_data(self, collection):
+        success, data, message = getDB(collection)
+        if success:
+            DisplayData(self.app, data, collection, update=True)
+        else:
+            messagebox.showerror("Error", message)
+
+    def sign_out(self):
+        for widget in self.app.winfo_children():
+            widget.destroy()
+        self.session.clear()
+        messagebox.showinfo("Signed Out", "You have been signed out successfully.")
+        self.check_login()
+
+    def add_action(self):
+        if not self.bton_data:
+            messagebox.showerror("Error", "No data type selected for update.")
+            return
+
+        if self.data:
+            success, message = addDB(self.bton_data.lower(), self.data)
+            if success:
+                messagebox.showinfo("Update Successful", message)
+            else:
+                messagebox.showerror("Update Failed", message)
+
+    def update_action(self):
+        self.show_update_data(self.bton_data.lower())
+
+    def view_action(self):
+        self.show_data(self.bton_data.lower())
+
+    def clear_action(self):
+        self.bton_data = ""
+        self.data = {}
+        self.DB_submit.set("")
+        self.destroy_form()
+        self.update_button_state(DISABLED)
+
+    def destroy_form(self):
+        for widget in self.bottom1.winfo_children():
+            widget.destroy()
+
+    def submit_data(self):
+        print("Submit data", self.bton_data)
+        self.collection = self.bton_data.lower()
+        if self.collection == "guest":
+            data = {
+                "name": self.name.get(),
+                "email": self.email.get(),
+                "phone": self.phone.get(),
+                "address": self.address.get(),
+                "room_no": self.room_no.get(),
+                "check_in": self.check_in.get(),
+                "check_out": self.check_out.get(),
+                "status": self.status.get()
+            }
+        elif self.collection == "inventory":
+            data = {
+                "item": self.item.get(),
+                "quantity": self.quantity.get(),
+                "price": self.price.get()
+            }
+        elif self.collection == "rooms":
+            data = {
+                "room_no": self.room_no.get(),
+                "type": self.type.get(),
+                "status": self.status.get(),
+                "price": self.price.get()
+            }
+        elif self.collection == "staff":
+            data = {
+                "staff_id": self.staff_id.get(),
+                "name": self.name.get(),
+                "role": self.role.get(),
+                "email": self.email.get(),
+                "phone": self.phone.get(),
+                "address": self.address.get(),
+                "shift": self.shift.get(),
+                "salary": self.salary.get(),
+                "status": self.status.get()
+            }
+        elif self.collection == "user":
+            data = {
+                "username": self.username.get(),
+                "password": self.password.get(),
+                "name": self.name.get(),
+                "role": self.role.get()
+            }
+        else:
+            messagebox.showerror("Error", "Data collection not implemented for this type.")
+        
+        self.data = data
+        self.DB_submit.set(data)
 
 class Login:
-    def __init__(self, master):
-        self.master = master
+    def __init__(self, app):
+        self.app = app
+        self.master = app.app
         self.window = Toplevel(self.master)
         self.window.title("Login")
         self.window.geometry("300x200")
-        
-        # Ensure the login window stays on top of the main window
+
         self.window.transient(self.master)
         self.window.grab_set()
 
-        # Title label
         Label(self.window, text="Login", font=("Arial", 16, "bold")).grid(row=0, column=0, columnspan=2, pady=10)
 
-        # Username label and entry
         Label(self.window, text="Username:", font=("Arial", 12)).grid(row=1, column=0, sticky="e", padx=10, pady=5)
         self.username = Entry(self.window, font=("Arial", 12))
         self.username.grid(row=1, column=1, padx=10, pady=5)
 
-        # Password label and entry
         Label(self.window, text="Password:", font=("Arial", 12)).grid(row=2, column=0, sticky="e", padx=10, pady=5)
         self.password = Entry(self.window, font=("Arial", 12), show="*")
         self.password.grid(row=2, column=1, padx=10, pady=5)
 
-        # Login button
         Button(self.window, text="Login", font=("Arial", 12), command=self.handle_login).grid(row=3, column=0, columnspan=2)
-        Button(self.window, text="Exit", font=("Arial", 12), command=lambda: master.destroy()).grid(row=4, column=0, columnspan=2)
+        Button(self.window, text="Exit", font=("Arial", 12), command=self.master.destroy).grid(row=4, column=0, columnspan=2)
 
     def handle_login(self):
         username = self.username.get()
         password = self.password.get()
-
-        # Attempt login
         success, message = login(username, password)
         if success:
             messagebox.showinfo("Success", message)
-            self.window.destroy()  # Close the login window
-            check_login()
+            self.window.destroy()
+            self.app.check_login()
         else:
             messagebox.showerror("Error", message)
-        
 
 class DisplayData:
-    def __init__(self, parent, data, collection):
-        # Create a new Toplevel window
+    def __init__(self, parent, data, collection, update=False):
         self.window = Toplevel(parent)
         self.window.title(f"{collection.capitalize()} Data")
         self.window.geometry("900x400")
 
-        # Define the Treeview widget
         self.tree = ttk.Treeview(self.window)
-        
-        # Map the columns based on the collection
+
+        self.parent = parent
+        self.data = data
+        self.collection = collection
+
+        # Field mapping for collections
         collection_map = {
-            "guest": ("Name", "Email", "Phone", "Address", "Room No", "Check In", "Check Out", "Status"),
-            "inventory": ("Item Name", "Quantity", "Price"),
-            "rooms": ("Room No", "Type", "Status", "Price"),
-            "staff": ("Staff ID", "Name", "Role", "Email", "Phone", "Address", "Shift", "Salary", "Status"),
-            "user": ("Name", "Username", "Role")
+            "guest": ("ID", "Name", "Email", "Phone", "Address", "Room No", "Check In", "Check Out", "Status"),
+            "inventory": ("ID", "Item Name", "Quantity", "Price"),
+            "rooms": ("ID", "Room No", "Type", "Status", "Price"),
+            "staff": ("ID", "Name", "Role", "Email", "Phone", "Address", "Shift", "Salary", "Status"),
+            "user": ("ID", "Name", "Username", "Role")
         }
 
         if collection in collection_map:
             columns = collection_map[collection]
             self.tree["columns"] = columns
-            self.tree["show"] = "headings"  # Show only headings, not the default empty column
+            self.tree["show"] = "headings"
 
-            # Configure column headings
             for col in columns:
                 self.tree.heading(col, text=col, anchor="w")
-                self.tree.column(col, anchor="w", width=100)  # Adjust column width as needed
+                self.tree.column(col, anchor="w", width=100)
 
-            # Insert data into the Treeview
             for item in data:
-                if collection == "guest":
-                    self.tree.insert("", "end", values=(item['guest_id'], item['name'], item['email'], item['phone'], item['address'], item['room_no'], item['check_in'], item['check_out'], item['status']))
-                elif collection == "inventory":
-                    self.tree.insert("", "end", values=(item['item'], item['quantity'], item['price']))
-                elif collection == "rooms":
-                    self.tree.insert("", "end", values=(item['room_no'], item['type'], item['status'], item['price']))
-                elif collection == "staff":
-                    self.tree.insert("", "end", values=(item['staff_id'], item['name'], item['role'], item['email'], item['phone'], item['address'], item['shift'], item['salary'], item['status']))
-                elif collection == "user":
-                    self.tree.insert("", "end", values=(item['name'], item['username'], item['role']))
+                self.tree.insert("", "end", values=tuple(item.values()))
 
-        # Pack the Treeview widget
         self.tree.pack(expand=True, fill="both")
-
-        # Add a close button
         close_button = ttk.Button(self.window, text="Close", command=self.window.destroy)
         close_button.pack(pady=10)
 
-def show_data(collection):
-    global app
-    success, data, message = getDB(collection)
-    if success:
-        DisplayData(app, data, collection)
-    else:
-        messagebox.showerror("Error", message)
+        if update==True:
+            self.tree.bind("<Double-1>", self.open_update_window)
+            
 
-def show_main(role):
-    global app, session
-    if 'user' not in session:
-        messagebox.showerror("Error", "No user logged in.")
-        app.quit()
-        return
+    def open_update_window(self, event):
+        selected_item = self.tree.selection()
+        if selected_item:
+            row_data = self.tree.item(selected_item[0], "values")
+            field_names = [col for col in self.tree["columns"]]
 
-    # Clear any previous widgets from the window
-    for widget in app.winfo_children():
-        widget.destroy()
+            # Map the row data to field names
+            selected_data = {field: value for field, value in zip(field_names, row_data)}
 
-    mymenu = Menu(app)
-    app.config(menu=mymenu)
+            # Open the UpdateDisplayData window
+            UpdateDisplayData(self.parent, self.collection, selected_data)
 
-    db = Menu(mymenu)
-    mymenu.add_cascade(label="View", menu=db)
-    db.add_command(label="Guests", command=lambda: show_data("guest"))
-    db.add_command(label="Inventory", command=lambda: show_data("inventory"))
-    db.add_command(label="Rooms", command=lambda: show_data("rooms"))
-    if role == "admin":
-        db.add_command(label="Staff", command=lambda: show_data("staff"))
-        db.add_command(label="Users", command=lambda: show_data("user"))
+            # Close the current DisplayData window
+            self.window.destroy()
 
-    settings = Menu(mymenu)
-    mymenu.add_cascade(label="Settings", menu=settings)
-    settings.add_command(label="Sign Out", command=sign_out)
-    settings.add_command(label="Exit", command=app.quit)
+class UpdateDisplayData:
+    def __init__(self, parent, collection, selected_data):
+        self.parent = parent
+        self.collection = collection
+        self.selected_data = selected_data
+        self.window = Toplevel(parent)
+        self.window.title(f"Update {collection.capitalize()} Data")
+        self.window.geometry("400x400")
 
-    # Get user data from session
-    user_Name.set(session.get('name', 'Unknown User'))
-
-    # Your main application UI setup
-    topbar = Frame(app, width=1500, height=70, bg="lightblue")
-    topbar.grid(row=0, column=0, columnspan=3, sticky="ew")
-    topbar.grid_columnconfigure(0, weight=1, minsize=500)
-    topbar.grid_columnconfigure(1, weight=1, minsize=500)
-    topbar.grid_columnconfigure(2, weight=1, minsize=500)
-    Label(topbar, text=role.capitalize(), font=("Arial", 24), bg="lightblue", height=2).grid(row=0, column=0, sticky="w", padx=10)
-    Label(topbar, text="Welcome to Hotel Management", font=("Arial", 24), bg="lightblue", height=2).grid(row=0, column=1, sticky="n", padx=10)
-    Label(topbar, textvariable=user_Name, font=("Arial", 24), bg="lightblue", height=2).grid(row=0, column=2, sticky="e", padx=10)
-
-    # Button Actions
-    middlebar = Frame(app, width=1500, height=60)
-    middlebar.grid(row=1, column=0, columnspan=3, sticky="ew")
-    if role == "user":
-        for i in range(3):
-            middlebar.grid_columnconfigure(i, weight=1, minsize=500)
-        Button(middlebar, text="Guests", font=("Arial", 16), height=2, width=40, command=lambda: button_click("Guest", bottom1)).grid(row=0, column=0)
-        Button(middlebar, text="Inventory", font=("Arial", 16), height=2, width=40, command=lambda: button_click("Inventory", bottom1)).grid(row=0, column=1, padx=10)
-        Button(middlebar, text="Rooms", font=("Arial", 16), height=2, width=40, command=lambda: button_click("Rooms", bottom1)).grid(row=0, column=2)
-    elif role == "admin":
-        for i in range(5):
-            middlebar.grid_columnconfigure(i, weight=1, minsize=300)
-        Button(middlebar, text="Guests", font=("Arial", 16), height=2, width=20, command=lambda: button_click("Guest", bottom1)).grid(row=0, column=0)
-        Button(middlebar, text="Inventory", font=("Arial", 16), height=2, width=20, command=lambda: button_click("Inventory", bottom1)).grid(row=0, column=1)
-        Button(middlebar, text="Rooms", font=("Arial", 16), height=2, width=20, command=lambda: button_click("Rooms", bottom1)).grid(row=0, column=2)
-        Button(middlebar, text="Staff", font=("Arial", 16), height=2, width=20, command=lambda: button_click("Staff", bottom1)).grid(row=0, column=3)
-        Button(middlebar, text="Users", font=("Arial", 16), height=2, width=20, command=lambda: button_click("Users", bottom1)).grid(row=0, column=4)
-
-    # Footer
-    bottom1 = Frame(app, width=1000, height=670)
-    bottom1.grid(row=2, column=0, columnspan=2, sticky="ewns")
-    app.grid_rowconfigure(2, weight=1, minsize=670)
-    bottom2 = Frame(app, width=500)
-    bottom2.grid(row=2, column=2, sticky="ewns")
-    global addBtn, updateBtn, viewBtn, closeBtn, bton_data
-    addBtn = Button(bottom2, text="Add", font=("Arial", 16), width=40, command=lambda: submitData(bton_data))
-    addBtn.pack(pady=10)
-    addBtn.config(state=DISABLED)
-    updateBtn = Button(bottom2, text="Update", font=("Arial", 16), width=40, command=update_action)
-    updateBtn.pack(pady=10)
-    updateBtn.config(state=DISABLED)
-    viewBtn = Button(bottom2, text="View", font=("Arial", 16), width=40, command=View_Action)
-    viewBtn.pack(pady=10)
-    viewBtn.config(state=DISABLED)
-    closeBtn = Button(bottom2, text="Close", font=("Arial", 16), width=40, command=lambda:clear_action(bottom1))
-    closeBtn.pack(pady=10)
-    closeBtn.config(state=DISABLED)
-
-def update_action():
-    global bton_data
-    print(f"Update {bton_data}")
-
-def updateBtnState(state):
-    global addBtn, updateBtn, viewBtn, closeBtn
-    buttons=[addBtn, viewBtn, closeBtn]
-    for i in buttons:
-        i.config(state=state)
-
-def View_Action():
-    global bton_data
-    if bton_data == "Guest":
-        show_data("guest")
-    elif bton_data == "Inventory":
-        show_data("inventory")
-    elif bton_data == "Rooms":
-        show_data("rooms")
-    elif bton_data == "Staff":
-        show_data("staff")
-    elif bton_data == "Users":
-        show_data("user")
-
-def clear_action(window):
-    global bton_data
-    for widget in window.winfo_children():
-        widget.destroy()
-    bton_data = ""
-    updateBtnState(DISABLED)
-
-def sign_out():
-    global app, session
-    for widget in app.winfo_children():
-        widget.destroy()
-    session.clear()  # Clear session
-    messagebox.showinfo("Signed Out", "You have been signed out successfully.")
-    # Return to the login screen
-    check_login()
-
-def button_click(collection, window1):
-    global bton_data
-    # Clear the window1 content
-    for widget in window1.winfo_children():
-        widget.destroy()
-
-    bton_data = collection
-    if bton_data!= "":
-        updateBtnState(ACTIVE)
-
-    if collection == "Guest":
-        Label(window1, text="Guests", font=("Arial", 24), width=50).grid(row=0, column=0, columnspan=2, pady=10)
-
-        # Guest Form Fields
-        # Label(window1, text="Guest ID:", font=("Arial", 12)).grid(row=1, column=0, sticky="e", padx=10, pady=5)
-        # Entry(window1, textvariable=guest_id, font=("Arial", 12)).grid(row=1, column=1, padx=10, pady=5)
-
-        Label(window1, text="Name:", font=("Arial", 12)).grid(row=2, column=0, sticky="e", padx=10, pady=5)
-        Entry(window1, textvariable=name, font=("Arial", 12)).grid(row=2, column=1, padx=10, pady=5)
-
-        Label(window1, text="Email:", font=("Arial", 12)).grid(row=3, column=0, sticky="e", padx=10, pady=5)
-        Entry(window1, textvariable=email, font=("Arial", 12)).grid(row=3, column=1, padx=10, pady=5)
-
-        Label(window1, text="Phone:", font=("Arial", 12)).grid(row=4, column=0, sticky="e", padx=10, pady=5)
-        Entry(window1, textvariable=phone, font=("Arial", 12)).grid(row=4, column=1, padx=10, pady=5)
-
-        Label(window1, text="Address:", font=("Arial", 12)).grid(row=5, column=0, sticky="e", padx=10, pady=5)
-        Entry(window1, textvariable=address, font=("Arial", 12)).grid(row=5, column=1, padx=10, pady=5)
-
-        Label(window1, text="Room No:", font=("Arial", 12)).grid(row=6, column=0, sticky="e", padx=10, pady=5)
-        Entry(window1, textvariable=room_no, font=("Arial", 12)).grid(row=6, column=1, padx=10, pady=5)
-
-        # Label(window1, text="Check In Date:", font=("Arial", 12)).grid(row=7, column=0, sticky="e", padx=10, pady=5)
-        # Entry(window1, textvariable=check_in, font=("Arial", 12)).grid(row=7, column=1, padx=10, pady=5)
-
-        # Label(window1, text="Check Out Date:", font=("Arial", 12)).grid(row=8, column=0, sticky="e", padx=10, pady=5)
-        # Entry(window1, textvariable=check_out, font=("Arial", 12)).grid(row=8, column=1, padx=10, pady=5)
-
-        Label(window1, text="Status:", font=("Arial", 12)).grid(row=9, column=0, sticky="e", padx=10, pady=5)
-        Entry(window1, textvariable=status, font=("Arial", 12)).grid(row=9, column=1, padx=10, pady=5)
-
-        # Submit Button to save guest data
-        submit_button = Button(window1, text="Submit", font=("Arial", 12), command=lambda:getData("Guest"))
-        submit_button.grid(row=10, column=0, columnspan=2, pady=10)
-
-        Label(window1, text="Data:", font=("Arial", 12)).grid(row=11, column=0, sticky="e", padx=10, pady=5)
-        Label(window1, textvariable=DB_submit, font=("Arial", 12)).grid(row=11, column=1, padx=10, pady=5)
-
-    elif collection == "Inventory":
-        Label(window1, text="Inventory", font=("Arial", 24), width=50).grid(row=0, column=0, columnspan=2, pady=10)
-
-        # Inventory Form Fields
-        Label(window1, text="Item Name:", font=("Arial", 12)).grid(row=1, column=0, sticky="e", padx=10, pady=5)
-        Entry(window1, textvariable=item, font=("Arial", 12)).grid(row=1, column=1, padx=10, pady=5)
-
-        Label(window1, text="Quantity:", font=("Arial", 12)).grid(row=2, column=0, sticky="e", padx=10, pady=5)
-        Entry(window1, textvariable=quantity, font=("Arial", 12)).grid(row=2, column=1, padx=10, pady=5)
-
-        Label(window1, text="Price:", font=("Arial", 12)).grid(row=3, column=0, sticky="e", padx=10, pady=5)
-        Entry(window1, textvariable=price, font=("Arial", 12)).grid(row=3, column=1, padx=10, pady=5)
-
-        # Submit Button to save inventory data
-        submit_button = Button(window1, text="Submit", font=("Arial", 12), command=lambda:getData("Inventory"))
-        submit_button.grid(row=4, column=0, columnspan=2, pady=10)
-
-        Label(window1, text="Data:", font=("Arial", 12)).grid(row=5, column=0, sticky="e", padx=10, pady=5)
-        Label(window1, textvariable=DB_submit, font=("Arial", 12)).grid(row=5, column=1, padx=10, pady=5)
-
-    elif collection == "Rooms":
-        Label(window1, text="Rooms", font=("Arial", 24), width=50).grid(row=0, column=0, columnspan=2, pady=10)
-
-        # Rooms Form Fields
-        Label(window1, text="Room No:", font=("Arial", 12)).grid(row=1, column=0, sticky="e", padx=10, pady=5)
-        Entry(window1, textvariable=room_no, font=("Arial", 12)).grid(row=1, column=1, padx=10, pady=5)
-
-        Label(window1, text="Type:", font=("Arial", 12)).grid(row=2, column=0, sticky="e", padx=10, pady=5)
-        Entry(window1, textvariable=type, font=("Arial", 12)).grid(row=2, column=1, padx=10, pady=5)
-
-        Label(window1, text="Status:", font=("Arial", 12)).grid(row=3, column=0, sticky="e", padx=10, pady=5)
-        Entry(window1, textvariable=status, font=("Arial", 12)).grid(row=3, column=1, padx=10, pady=5)
-
-        Label(window1, text="Price:", font=("Arial", 12)).grid(row=4, column=0, sticky="e", padx=10, pady=5)
-        Entry(window1, textvariable=price, font=("Arial", 12)).grid(row=4, column=1, padx=10, pady=5)
-
-        # Submit Button to save room data
-        submit_button = Button(window1, text="Submit", font=("Arial", 12), command=lambda:getData("Rooms"))
-        submit_button.grid(row=5, column=0, columnspan=2, pady=10)
-
-        Label(window1, text="Data:", font=("Arial", 12)).grid(row=6, column=0, sticky="e", padx=10, pady=5)
-        Label(window1, textvariable=DB_submit, font=("Arial", 12)).grid(row=6, column=1, padx=10, pady=5)
-        
-    elif collection == "Staff":
-        Label(window1, text="Staff", font=("Arial", 24), width=50).grid(row=0, column=0, columnspan=2, pady=10)
-
-        # Staff Form Fields
-        Label(window1, text="Staff ID:", font=("Arial", 12)).grid(row=1, column=0, sticky="e", padx=10, pady=5)
-        Entry(window1, textvariable=staff_id, font=("Arial", 12)).grid(row=1, column=1, padx=10, pady=5)
-
-        Label(window1, text="Name:", font=("Arial", 12)).grid(row=2, column=0, sticky="e", padx=10, pady=5)
-        Entry(window1, textvariable=name, font=("Arial", 12)).grid(row=2, column=1, padx=10, pady=5)
-
-        Label(window1, text="Role:", font=("Arial", 12)).grid(row=3, column=0, sticky="e", padx=10, pady=5)
-        Entry(window1, textvariable=role, font=("Arial", 12)).grid(row=3, column=1, padx=10, pady=5)
-
-        Label(window1, text="Email:", font=("Arial", 12)).grid(row=4, column=0, sticky="e", padx=10, pady=5)
-        Entry(window1, textvariable=email, font=("Arial", 12)).grid(row=4, column=1, padx=10, pady=5)
-
-        Label(window1, text="Shift:", font=("Arial", 12)).grid(row=7, column=0, sticky="e", padx=10, pady=5)
-        Entry(window1, textvariable=shift, font=("Arial", 12)).grid(row=7, column=1, padx=10, pady=5)
-
-        Label(window1, text="Salary:", font=("Arial", 12)).grid(row=8, column=0, sticky="e", padx=10, pady=5)
-        Entry(window1, textvariable=salary, font=("Arial", 12)).grid(row=8, column=1, padx=10, pady=5)
-
-        Label(window1, text="Status:", font=("Arial", 12)).grid(row=9, column=0, sticky="e", padx=10, pady=5)
-        Entry(window1, textvariable=status, font=("Arial", 12)).grid(row=9, column=1, padx=10, pady=5)
-
-        # Submit Button to save staff data
-        submit_button = Button(window1, text="Submit", font=("Arial", 12), command=lambda:getData("Staff"))
-        submit_button.grid(row=10, column=0, columnspan=2, pady=10)
-
-        Label(window1, text="Data:", font=("Arial", 12)).grid(row=11, column=0, sticky="e", padx=10, pady=5)
-        Label(window1, textvariable=DB_submit, font=("Arial", 12)).grid(row=11, column=1, padx=10, pady=5)
-        
-    elif collection == "Users":
-        Label(window1, text="Users", font=("Arial", 24), width=50).grid(row=0, column=0, columnspan=2, pady=10)
-
-        # Users Form Fields
-        Label(window1, text="Username:", font=("Arial", 12)).grid(row=1, column=0, sticky="e", padx=10, pady=5)
-        Entry(window1, textvariable=username, font=("Arial", 12)).grid(row=1, column=1, padx=10, pady=5)
-
-        Label(window1, text="Password:", font=("Arial", 12)).grid(row=2, column=0, sticky="e", padx=10, pady=5)
-        Entry(window1, textvariable=password, font=("Arial", 12)).grid(row=2, column=1, padx=10, pady=5)
-
-        Label(window1, text="Name:", font=("Arial", 12)).grid(row=3, column=0, sticky="e", padx=10, pady=5)
-        Entry(window1, textvariable=name, font=("Arial", 12)).grid(row=3, column=1, padx=10, pady=5)
-
-        Label(window1, text="Role:", font=("Arial", 12)).grid(row=4, column=0, sticky="e", padx=10, pady=5)
-        Entry(window1, textvariable="User", font=("Arial", 12)).grid(row=4, column=1, padx=10, pady=5)
-
-        # Submit Button to save user data
-        submit_button = Button(window1, text="Submit", font=("Arial", 12), command=lambda:getData("Users"))
-        submit_button.grid(row=5, column=0, columnspan=2, pady=10)
-
-        Label(window1, text="Data:", font=("Arial", 12)).grid(row=6, column=0, sticky="e", padx=10, pady=5)
-        Label(window1, textvariable=DB_submit, font=("Arial", 12), width=50, height=100).grid(row=6, column=1, padx=10, pady=5)
-
-def getData(collection):
-    global data
-    # Collect data based on the collection type
-    if collection == "Guest":
-            # "guest_id": int(guest_id.get()),
-        data = {
-            "name": name.get(),
-            "email": email.get(),
-            "phone": phone.get(),
-            "address": address.get(),
-            "room_no": room_no.get(),
-            "status": status.get()
-        }
-    elif collection == "Inventory":
-        data = {
-            "item": item.get(),
-            "quantity": int(quantity.get()),
-            "price": int(price.get())
-        }
-    elif collection == "Rooms":
-        data = {
-            "room_no": room_no.get(),
-            "type": type.get(),
-            "status": status.get(),
-            "price": int(price.get())
-        }
-    elif collection == "Staff":
-            # "staff_id": staff_id.get(),
-        data = {
-            "name": name.get(),
-            "role": role.get(),
-            "email": email.get(),
-            "phone": phone.get(),
-            "address": address.get(),
-            "shift": shift.get(),
-            "salary": salary.get(),
-            "status": status.get()
-        }
-    elif collection == "User":
-        data = {
-            "username": username.get(),
-            "password": password.get(),
-            "name": name.get(),
-            "role": "user"
+        # Field mapping for collections
+        collection_kes = {
+            "guest": ("ID", "Name", "Email", "Phone", "Address", "Room No", "Check In", "Check Out", "Status"),
+            "inventory": ("ID", "Item Name", "Quantity", "Price"),
+            "rooms": ("ID", "Room No", "Type", "Status", "Price"),
+            "staff": ("ID", "Name", "Role", "Email", "Phone", "Address", "Shift", "Salary", "Status"),
+            "user": ("ID", "Name", "Username", "Role")
         }
 
-    DB_submit.set(data)
+        self.fields = collection_kes.get(collection, [])
+        self.form_vars = {}
 
-def submitData(collection):
-    global data, DB_submit
-    # Pass data to FormHandler
-    success, id, message = addDB(collection, data)
-    if success:
-        print(message)
-    else:
-        print(f"Error: {message}")
-    addDB(collection,data)
-    DB_submit.set("")
-    data = {}
+        # Update form layout
+        for idx, field in enumerate(self.fields):
+            label = Label(self.window, text=f"{field}:", font=("Arial", 12))
+            label.grid(row=idx, column=0, sticky="e", padx=10, pady=5)
 
-def check_login():
-    if 'user' in session:
-        role = session.get('role', 'user')
-        show_main(role)
-    else:
-        Login(app)
+            entry_var = StringVar()
+            entry = Entry(self.window, textvariable=entry_var, font=("Arial", 12))
+            entry.grid(row=idx, column=1, padx=10, pady=5)
 
-# Start by checking login status
-check_login()
+            # Pre-fill with selected data
+            entry_var.set(selected_data.get(field, ""))  # Use the field name to access the value
+            self.form_vars[field] = entry_var
 
-# Start the Tkinter main loop
-app.mainloop()
+        # Buttons
+        self.update_btn = Button(self.window, text="Update", font=("Arial", 16), command=self.update_data)
+        self.update_btn.grid(row=len(self.fields), column=0, columnspan=2, pady=10)
+
+        self.close_btn = Button(self.window, text="Close", font=("Arial", 16), command=self.window.destroy)
+        self.close_btn.grid(row=len(self.fields) + 1, column=0, columnspan=2, pady=10)
+
+    def update_data(self):
+        # Collect updated data from the form
+        updated_data = {field: var.get() for field, var in self.form_vars.items()}
+
+        # Explicitly check for '_id' as the database ID field
+        id_field = "ID"
+        record_id = updated_data.pop(id_field, None)
+
+        if not record_id:
+            messagebox.showerror("Error", "Record ID (_id) is missing. Cannot update.")
+            return
+
+        # Call the updateDB function with the corrected ID field
+        success, message = updateDB(self.collection, record_id, updated_data)
+        if success:
+            messagebox.showinfo("Success", "Data updated successfully.")
+            self.window.destroy()
+        else:
+            messagebox.showerror("Error", message)
+
+if __name__ == "__main__":
+    HotelManagementApp()
